@@ -12,7 +12,9 @@ The files
 ## Installation
 
 1. Deploy the source code in /usr/lib64/ceph/mgr/snmphandler
-2. Copy the MIB source file to /usr/share/snmp/mibs (e.g. snmptrap -m +SNMPHANDLER-MIB ... or snmptranslate -m +SNMPHANDLER-MIB -IR  -On fsId)
+2. Copy the MIB source file to /usr/share/snmp/mibs 
+   1. e.g. `snmptrap -m +SNMPHANDLER-MIB ...`
+   2. e.g. `snmptranslate -m +SNMPHANDLER-MIB -IR  -On fsId`
 3. Restart the `snmptrapd` and `smpd` daemons
 4. Enable the module with `ceph mgr module enable snmphandler`
 
