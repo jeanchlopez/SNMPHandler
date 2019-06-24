@@ -4,17 +4,17 @@ This initial version uses the CLI to generate the traps it is sending for portab
 This made it possible to handle easily the support for any version of SNMP (V1 through V3)
 
 The files
-* __init__.py		(module initaliazation)
-* module.py		(The code itself)
-* types.py		(The types needed for the module. Imported from other modules for later expansion)
-* SNMPHANDLER-MIB.txt	(The MIB source code so it can be imported into snmptrapd and used in snmptrap making it easier)
+* `__init__.py`		(module initaliazation)
+* `module.py`		(The code itself)
+* `types.py`		(The types needed for the module. Imported from other modules for later expansion)
+* `SNMPHANDLER-MIB.txt`	(The MIB source code so it can be imported into snmptrapd and used in snmptrap making it easier)
 
 ## Installation
 
-Deploy the source code in /usr/lib64/ceph/mgr/snmphandler
-Copy the MIB source file to /usr/share/snmp/mibs (e.g. snmptrap -m +SNMPHANDLER-MIB ... or snmptranslate -m +SNMPHANDLER-MIB -IR  -On fsId)
-Restart the snmptrapd and smpd daemons
-Enable the module with ceph mgr module enable snmphandler
+1. Deploy the source code in /usr/lib64/ceph/mgr/snmphandler
+2. Copy the MIB source file to /usr/share/snmp/mibs (e.g. snmptrap -m +SNMPHANDLER-MIB ... or snmptranslate -m +SNMPHANDLER-MIB -IR  -On fsId)
+3. Restart the `snmptrapd` and `smpd` daemons
+4. Enable the module with `ceph mgr module enable snmphandler`
 
 ## Features
 * SNMP version and parameters can be customized via the ceph config-key set mgr/snmphandler/{parameter} {value}
