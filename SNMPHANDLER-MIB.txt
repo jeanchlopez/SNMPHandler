@@ -1,0 +1,733 @@
+SNMPHANDLER-MIB DEFINITIONS ::= BEGIN
+
+--
+-- Ceph SNMP Handler Manager Module MIB Definitions
+--
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, Counter32, Gauge32, Counter64,
+    Integer32, TimeTicks, IpAddress, mib-2, enterprises,
+    NOTIFICATION-TYPE                        FROM SNMPv2-SMI
+    SnmpAdminString                          FROM SNMP-FRAMEWORK-MIB
+    MODULE-COMPLIANCE, OBJECT-GROUP,
+    NOTIFICATION-GROUP                       FROM SNMPv2-CONF
+    snmpTraps                                FROM SNMPv2-MIB
+;
+
+cephSnmpHandler MODULE-IDENTITY
+    LAST-UPDATED "201903010000Z"
+    ORGANIZATION "www.ceph.com"
+    CONTACT-INFO
+     "postal:   JC Lopez
+                    100 E Davie St.
+                    Raleigh NC  27601
+
+          email:    jcl@redhat.com"
+    DESCRIPTION
+    "Ceph SNMP Handler Manager Module MIB Definitions"
+    REVISION     "201903010000Z"
+    DESCRIPTION
+    "First draft"
+    ::= { enterprises 50495 }
+
+--
+-- top level structure
+--
+clusterInfo          OBJECT IDENTIFIER ::= { cephSnmpHandler 1 }
+clusterStatus        OBJECT IDENTIFIER ::= { cephSnmpHandler 2 }
+monMap               OBJECT IDENTIFIER ::= { cephSnmpHandler 3 }
+osdMap               OBJECT IDENTIFIER ::= { cephSnmpHandler 4 }
+mdsMap               OBJECT IDENTIFIER ::= { cephSnmpHandler 5 }
+mgrMap               OBJECT IDENTIFIER ::= { cephSnmpHandler 6 }
+svcMap               OBJECT IDENTIFIER ::= { cephSnmpHandler 7 }
+poolMap              OBJECT IDENTIFIER ::= { cephSnmpHandler 8 }
+pgMap                OBJECT IDENTIFIER ::= { cephSnmpHandler 9 }
+clusterTraps         OBJECT IDENTIFIER ::= { cephSnmpHandler 10 }
+
+--
+-- MON Map
+--
+snmpMonMapTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF MonMapEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "The table of Monitors in the cluster."
+    ::= { monMap 1 }
+
+snmpMonMapEntry OBJECT-TYPE
+    SYNTAX       MonMapEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "Information about a particular Monitor."
+    INDEX       { IMPLIED snmpMonIndex }
+    ::= { snmpMonMapTable 1 }
+
+MonMapEntry ::= SEQUENCE {
+    snmpMonIndex               IpAddress,
+    snmpMonName                OCTET STRING,
+    snmpMonRank                INTEGER,
+    snmpMonPort                INTEGER,
+    snmpMonStatus              INTEGER
+}
+
+snmpMonIndex OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The unique index value of a Monitor (its IP address)."
+    ::= { snmpMonMapEntry 1 }
+
+snmpMonName OBJECT-TYPE
+    SYNTAX       OCTET STRING
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The Monitor name (id). Usually the short hostname."
+    ::= { snmpMonMapEntry 2 }
+    
+snmpMonRank OBJECT-TYPE
+    SYNTAX       INTEGER
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The rank for this Monitor."
+    ::= { snmpMonMapEntry 3 }
+
+snmpMonPort OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The TCP port the Monitor is listening on."
+    ::= { snmpMonMapEntry 4 }
+
+snmpMonStatus OBJECT-TYPE
+    SYNTAX  INTEGER {
+                monIn(0),    -- Monitor running and in quorum
+                monOut(1)    -- Monitor not running or out quorum
+            }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The status of the monitor."
+    ::= { snmpMonMapEntry 5 }
+
+--
+-- OSD Map
+--
+snmpOsdMapTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF OsdMapEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "The table of OSDs in the cluster."
+    ::= { osdMap 1 }
+
+snmpOsdMapEntry OBJECT-TYPE
+    SYNTAX       OsdMapEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "Information about a particular OSD."
+    INDEX       { IMPLIED snmpOsdIndex }
+    ::= { snmpOsdMapTable 1 }
+
+OsdMapEntry ::= SEQUENCE {
+    snmpOsdIndex               Integer32,
+    snmpOsdUuid                OCTET STRING,
+    snmpOsdHost                OCTET STRING,
+    snmpOsdInOut               INTEGER,
+    snmpOsdUpDown              INTEGER,
+    snmpOsdPublic              IpAddress,
+    snmpOsdPublicPort          INTEGER,
+    snmpOsdCluster             IpAddress,
+    snmpOsdClusterPort         INTEGER,
+    snmpOsdClass               OCTET STRING,
+    snmpOsdReweightIntegral    INTEGER,
+    snmpOsdReweightDecimal     INTEGER,
+    snmpOsdSize                Counter64,
+    snmpOsdUsed                Counter64,
+    snmpOsdFree                Counter64,
+    snmpOsdPgTotal             INTEGER,
+    snmpOsdPgPrimary           INTEGER,
+    snmpOsdBackend             INTEGER
+}
+
+snmpOsdIndex OBJECT-TYPE
+    SYNTAX      Integer32 (0..1048576)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The unique index value of an OSD (its ID)."
+    ::= { snmpOsdMapEntry 1 }
+
+snmpOsdUuid OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The OSD uuid."
+    ::= { snmpOsdMapEntry 2 }
+    
+snmpOsdHost OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The host where the OSD is running."
+    ::= { snmpOsdMapEntry 3 }
+
+snmpOsdInOut OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    osdOut(0),   -- The OSD is marked out
+                    osdIn(1)     -- The OSD is marked in
+                } 
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The status of the OSD for CRUSH."
+    ::= { snmpOsdMapEntry 4 }
+
+snmpOsdUpDown OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    osdDown(0),  -- The OSD is up and running
+                    osdUp(1)     -- The OSD is down or not responsive
+                } 
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The status of the OSD daemon."
+    ::= { snmpOsdMapEntry 5 }
+
+snmpOsdPublic OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The public IP address this OSD."
+    ::= { snmpOsdMapEntry 6 }
+
+snmpOsdPublicPort OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The public IP port this OSD."
+    ::= { snmpOsdMapEntry 7 }
+
+snmpOsdCluster OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The cluster IP address this OSD."
+    ::= { snmpOsdMapEntry 8 }
+
+snmpOsdClusterPort OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The public IP port this OSD."
+    ::= { snmpOsdMapEntry 9 }
+
+snmpOsdClass OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The device class this OSD."
+    ::= { snmpOsdMapEntry 10 }
+
+snmpOsdReweightIntegral OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The integral portion of the OSD reweight value."
+    ::= { snmpOsdMapEntry 11 }
+
+snmpOsdReweightDecimal OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The decimal portion of the OSD reweight value."
+    ::= { snmpOsdMapEntry 12 }
+
+snmpOsdSize OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The total size in bytes reported for this OSD."
+    ::= { snmpOsdMapEntry 13 }
+
+snmpOsdUsed OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The used size in bytes reported for this OSD."
+    ::= { snmpOsdMapEntry 14 }
+
+snmpOsdFree OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The free size in bytes reported for this OSD."
+    ::= { snmpOsdMapEntry 15 }
+
+snmpOsdPgTotal OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The total number of placement groups this OSD."
+    ::= { snmpOsdMapEntry 16 }
+
+snmpOsdPgPrimary OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of primary placement groups this OSD."
+    ::= { snmpOsdMapEntry 17 }
+
+snmpOsdBackend OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    osdFileStore(0),   -- This OSD is backed by filestore
+                    osdBlueStore(1),   -- This OSD is backed by bluestore
+                    osdUnknownStore(2) -- This OSD is backed by something else
+                }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The type of backend this OSD."
+    ::= { snmpOsdMapEntry 18 }
+
+--
+-- Mgr Map
+--
+snmpMgrMapTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF MgrMapEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "The table of Managers in the cluster."
+    ::= { mgrMap 1 }
+
+snmpMgrMapEntry OBJECT-TYPE
+    SYNTAX       MgrMapEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "Information about a particular Manager."
+    INDEX       { IMPLIED snmpMgrIndex }
+    ::= { snmpMgrMapTable 1 }
+
+MgrMapEntry ::= SEQUENCE {
+    snmpMgrIndex               OCTET STRING,
+    snmpMgrAddress             IpAddress,
+    snmpMgrPort                INTEGER,
+    snmpMgrActive              INTEGER
+}
+
+snmpMgrIndex OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(1..128))
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The unique index value of a Manager (its ID)."
+    ::= { snmpMgrMapEntry 1 }
+
+snmpMgrAddress OBJECT-TYPE
+    SYNTAX       IpAddress
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The Manager IP address."
+    ::= { snmpMgrMapEntry 2 }
+    
+snmpMgrPort OBJECT-TYPE
+    SYNTAX       INTEGER
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The port this Manager is listening."
+    ::= { snmpMgrMapEntry 3 }
+
+snmpMgrActive OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    mgrStandby(0),  -- This manager is standby
+                    mgrActive(1)    -- This manager is active
+                }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Is this Manager active."
+    ::= { snmpMgrMapEntry 4 }
+
+--
+-- Service Map
+--
+snmpSvcMapTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF SvcMapEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "The table of Services in the cluster."
+    ::= { svcMap 1 }
+
+snmpSvcMapEntry OBJECT-TYPE
+    SYNTAX       SvcMapEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "Information about a particular Service."
+    INDEX       { IMPLIED snmpSvcIndex }
+    ::= { snmpSvcMapTable 1 }
+
+SvcMapEntry ::= SEQUENCE {
+    snmpSvcIndex               OCTET STRING,
+    snmpSvcNode                OCTET STRING,
+    snmpSvcAddress             IpAddress,
+    snmpSvcPort                INTEGER,
+    snmpSvcVersion             OCTET STRING,
+    snmpSvcDistro              OCTET STRING
+}
+
+snmpSvcIndex OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(1..128))
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The unique index value of a Service (its Service Type combined with PID)."
+    ::= { snmpSvcMapEntry 1 }
+
+snmpSvcNode OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(1..128))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The unique index value of a Service (its Service Type combined with PID)."
+    ::= { snmpSvcMapEntry 2 }
+
+snmpSvcAddress OBJECT-TYPE
+    SYNTAX       IpAddress
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The Service IP address."
+    ::= { snmpSvcMapEntry 3 }
+    
+snmpSvcPort OBJECT-TYPE
+    SYNTAX       INTEGER
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The port this Service is listening."
+    ::= { snmpSvcMapEntry 4 }
+
+snmpSvcVersion OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The Ceph version used by this service."
+    ::= { snmpSvcMapEntry 5 }
+
+snmpSvcDistro OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The OS distribution this service is running on."
+    ::= { snmpSvcMapEntry 6 }
+
+--
+-- Pool Map
+--
+snmpPoolMapTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF PoolMapEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "The table of Pools in the cluster."
+    ::= { poolMap 1 }
+
+snmpPoolMapEntry OBJECT-TYPE
+    SYNTAX       PoolMapEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "Information about a particular pool."
+    INDEX       { IMPLIED snmpPoolIndex }
+    ::= { snmpPoolMapTable 1 }
+
+PoolMapEntry ::= SEQUENCE {
+    snmpPoolIndex              Integer32,
+    snmpPoolName               OCTET STRING,
+    snmpPoolType               INTEGER,
+    snmpPoolSize               INTEGER,
+    snmpPoolMinSize            INTEGER,
+    snmpPoolCrushRule          INTEGER,
+    snmpPoolPG                 INTEGER,
+    snmpPoolPGP                INTEGER,
+    snmpPoolScrub              INTEGER,
+    snmpPoolDeepScrub          INTEGER,
+    snmpPoolSizeChange         INTEGER,
+    snmpPoolDelete             INTEGER,
+    snmpPoolCompress           INTEGER,
+    snmpPoolApplication        OCTET STRING
+}
+
+snmpPoolIndex OBJECT-TYPE
+    SYNTAX      Integer32 (0..1048576)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The unique index value of a pool (its ID)."
+    ::= { snmpPoolMapEntry 1 }
+
+snmpPoolName OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The pool name."
+    ::= { snmpPoolMapEntry 2 }
+    
+snmpPoolType OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    poolReplicated(0),  -- Replicated pool
+                    poolErasure(1)      -- Erasure Coded pool
+                }
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The type of pool."
+    ::= { snmpPoolMapEntry 3 }
+
+snmpPoolSize OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The size parameter this pool."
+    ::= { snmpPoolMapEntry 4 }
+
+snmpPoolMinSize OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum size parameter this pool."
+    ::= { snmpPoolMapEntry 5 }
+
+snmpPoolCrushRule OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The CRUSH rule assigned to this pool."
+    ::= { snmpPoolMapEntry 6 }
+
+snmpPoolPG OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The total number of PGs this pool."
+    ::= { snmpPoolMapEntry 7 }
+
+snmpPoolPGP OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The effective number of PGs this pool."
+    ::= { snmpPoolMapEntry 8 }
+
+snmpPoolScrub OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    poolScrubYes(0),  -- This pool will be scrubbed
+                    poolScrubNo(1)    -- This pool will not be scrubbed
+                }
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The scrub flag this pool."
+    ::= { snmpPoolMapEntry 9 }
+
+snmpPoolDeepScrub OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    poolDeepScrubYes(0),  -- This pool will be deep-scrubbed
+                    poolDeepScrubNo(1)    -- This pool will not be deep-scrubbed
+                }
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The deep-scrub flag this pool."
+    ::= { snmpPoolMapEntry 10 }
+
+snmpPoolSizeChange OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    poolSizeChangeYes(0),  -- This pool size and min size can be changed
+                    poolSizeChangeNo(1)    -- This pool size and min size can NOT be changed
+                }
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The size change flag this pool."
+    ::= { snmpPoolMapEntry 11 }
+
+snmpPoolDelete OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    poolDeleteYes(0),  -- This pool can be deleted
+                    poolDeleteNo(1)    -- This pool can not be deleted
+                }
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The delete flag this pool."
+    ::= { snmpPoolMapEntry 12 }
+
+snmpPoolCompress OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    poolCompressedYes(0),  -- This pool uses compression
+                    poolCompressedNo(1)    -- This pool does not use compression
+                }
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The pool uses compression."
+    ::= { snmpPoolMapEntry 13 }
+
+snmpPoolApplication OBJECT-TYPE
+    SYNTAX      OCTET STRING    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The applucation set for this pool."
+    ::= { snmpPoolMapEntry 14 }
+
+
+--
+-- Notification Groups
+--
+
+clusterConformance   OBJECT IDENTIFIER ::= { cephSnmpHandler 11 }
+clusterGroups        OBJECT IDENTIFIER ::= { clusterConformance 1 }
+clusterCompliances   OBJECT IDENTIFIER ::= { clusterConformance 2 }
+
+-- compliance statements
+clusterCompliance3 MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+            "The compliance statement for SNMP entities which host
+            SNMP Handler Ceph Manager Module."
+
+    MODULE  -- this module
+        MANDATORY-GROUPS { clusterGeneralInformationGroup,
+                           clusterStatusNotificationsGroup }
+
+    ::= { clusterCompliances 1 }
+
+-- units of conformance
+
+clusterGeneralInformationGroup    OBJECT-GROUP
+    OBJECTS { fsId, statusDetail, statusMsg }
+    STATUS  current
+    DESCRIPTION
+            "A collection of objects providing information applicable to
+            the cluster."
+    ::= { clusterGroups 1 }
+
+clusterStatusNotificationsGroup  NOTIFICATION-GROUP
+    NOTIFICATIONS { clusterOk, clusterWarn, clusterError, clusterCheck }
+    STATUS  current
+    DESCRIPTION
+            "The notifications which indicate specific changes in the
+            value of statusDetail."
+    ::= { clusterGroups 2 }
+
+--
+-- Cluster Info
+--
+
+fsId OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+	"The unique FSID of this cluster."
+    ::= { clusterInfo 1 }
+
+--
+--  Cluster Status
+--
+
+statusDetail OBJECT-TYPE
+    SYNTAX  INTEGER {
+                healthOk(0),        -- Healthy cluster
+                healthWarn(1),      -- Something needs attention
+                healthError(2),     -- Data availability is compromised
+                healthUnknown(3)    -- Status can not be determined
+                                    -- for some reason.
+            }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+	"The overall status of the cluster.
+	
+	0 = HEALTH_OK, 1 = HEALTH_WARN, 2 = HEALT_ERR."
+    DEFVAL { 0 }
+    ::= { clusterStatus 1 }
+
+statusMsg OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+	"The most severe condition for this cluster."
+    ::= { clusterStatus 2 }
+
+
+--
+-- Trap definitions
+--
+
+clusterOk NOTIFICATION-TYPE
+    OBJECTS { fsId, statusDetail, statusMsg }
+    STATUS  current
+    DESCRIPTION
+            "The cluster transitioned to HEALTH_OK status."
+    ::= { clusterTraps 1 }
+
+clusterWarn NOTIFICATION-TYPE
+    OBJECTS { fsId, statusDetail, statusMsg }
+    STATUS  current
+    DESCRIPTION
+            "The cluster transitioned to HEALTH_WARN."
+    ::= { clusterTraps 2 }
+
+clusterError NOTIFICATION-TYPE
+    OBJECTS { fsId, statusDetail, statusMsg }
+    STATUS  current
+    DESCRIPTION
+            "The cluster transitioned to HEALTH_ERR."
+    ::= { clusterTraps 3 }
+    
+clusterCheck NOTIFICATION-TYPE
+    OBJECTS { fsId, statusDetail, statusMsg }
+    STATUS  current
+    DESCRIPTION
+            "The cluster transitioned to HEALTH_ERR."
+    ::= { clusterTraps 4 }
+    
+
+END
