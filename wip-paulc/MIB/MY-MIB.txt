@@ -1,0 +1,89 @@
+MY-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+        MODULE-IDENTITY, OBJECT-TYPE, Integer32, NOTIFICATION-TYPE, enterprises
+            FROM SNMPv2-SMI
+	OBJECT-GROUP, NOTIFICATION-GROUP, MODULE-COMPLIANCE
+	    FROM SNMPv2-CONF
+;
+
+myMIB MODULE-IDENTITY
+    LAST-UPDATED "201908270000Z"
+    ORGANIZATION "Ceph"
+    CONTACT-INFO
+	"me@home"
+    DESCRIPTION
+        "test module"
+    REVISION
+        "201908270000Z"
+    DESCRIPTION
+	"first draft"
+    ::= { enterprises 42}
+
+myData          OBJECT IDENTIFIER ::= { myMIB 1 }
+myAlerts 	OBJECT IDENTIFIER ::= { myMIB 2 }
+
+-- Scalars
+
+fsid OBJECT-TYPE
+    SYNTAX OCTET STRING
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "Unique ID of the ceph cluster"
+    ::= { myData 1 }
+
+statusMsg OBJECT-TYPE
+    SYNTAX OCTET STRING
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "Current status of the cluster in text form"
+    ::= { myData 2 }
+
+health OBJECT-TYPE
+    SYNTAX OCTET STRING
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "Clusters health description - OK, WARN or ERROR"
+    ::= { myData 3 }
+
+------------------------
+-- TRAPS              --
+------------------------
+
+testTrap NOTIFICATION-TYPE
+    OBJECTS { statusMsg }
+    STATUS current
+    DESCRIPTION "Test notification"
+    ::= { myAlerts 1 }
+
+
+-- Conformance and Compliance 
+
+myMIBConformance OBJECT IDENTIFIER ::= { myMIB 3 }
+myMIBCompliances OBJECT IDENTIFIER ::= { myMIBConformance 1 }
+myMIBGroups      OBJECT IDENTIFIER ::= { myMIBConformance 2 }
+
+myMIBCompliance MODULE-COMPLIANCE
+    STATUS current
+    DESCRIPTION
+        "complinance statement for the MIB"
+    MODULE
+	MANDATORY-GROUPS { dataGroup, alertGroup }
+    ::= { myMIBCompliances 1 }
+
+dataGroup OBJECT-GROUP
+    OBJECTS { fsid, statusMsg, health }
+    STATUS current
+      DESCRIPTION
+	"object collection defining wah"
+    ::= { myMIBGroups 1 }
+
+alertGroup NOTIFICATION-GROUP
+    NOTIFICATIONS { testTrap }
+    STATUS current
+      DESCRIPTION
+	"collection of alerts/traps"
+    ::= { myMIBGroups 2 }
+
+
+END
